@@ -25,3 +25,31 @@
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/tech/TXN.csv
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/tech/MU.csv
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/tech/SPY.csv
+
+## Крипта
+
+Дневные котировки (OHLCV) за 2 года по 19 монетам с Yahoo Finance (`<COIN>-USD`). Обновляются каждый день (расписание 00:30 UTC, GitHub может запускать с задержкой).
+
+Формат: `crypto/<COIN>.csv`, колонки те же. Последняя строка каждого файла — текущие сутки UTC, ещё не закрытые. В `crypto/_updated.txt` — число скачанных монет и время обновления, в `crypto/_missing.txt` — монеты, которые не скачались.
+
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/_updated.txt
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/_missing.txt
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/BTC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/ETH.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/ZEC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/DASH.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/ZEN.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/DUSK.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/LINK.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/SOL.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/XRP.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/ADA.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/DOGE.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/LTC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/XMR.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/AVAX.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/DOT.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/ATOM.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/BCH.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/ETC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto/FIL.csv
