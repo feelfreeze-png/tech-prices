@@ -60,7 +60,8 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase
           git add crypto
           git diff --quiet --cached || git commit -m "crypto prices $(date -u +%F)"
+          # сначала коммит: pull --rebase отказывает, если в рабочей копии есть незакоммиченные изменения
+          git pull --rebase
           git push
