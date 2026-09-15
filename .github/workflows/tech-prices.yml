@@ -1,0 +1,57 @@
+name: tech-prices
+
+on:
+  schedule:
+    # 22:00 UTC = 18:00 EDT / 17:00 EST — всегда после закрытия рынка США
+    - cron: '0 22 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch and convert
+        run: |
+          set -euo pipefail
+          mkdir -p tech
+          TICKERS="NVDA MRVL ANET GEV VRT ETN AVGO TSM AMD MPWR ON PWR DELL VST ADI TXN MU SPY"
+          FAILED=""
+          for T in $TICKERS; do
+            URL="https://query1.finance.yahoo.com/v8/finance/chart/${T}?range=2y&interval=1d"
+            if ! curl -fsS --retry 3 --retry-delay 5 -H 'User-Agent: Mozilla/5.0' "$URL" -o "/tmp/${T}.json"; then
+              FAILED="$FAILED $T"; continue
+            fi
+            if [ "$(jq -r '.chart.error' "/tmp/${T}.json")" != "null" ]; then
+              FAILED="$FAILED $T"; continue
+            fi
+            jq -r '
+              .chart.result[0] as $r
+              | ($r.indicators.quote[0]) as $q
+              | ($r.indicators.adjclose[0].adjclose) as $a
+              | "date,open,high,low,close,adjclose,volume",
+                ( range(0; ($r.timestamp | length)) as $i
+                  | [ ($r.timestamp[$i] | gmtime | strftime("%Y-%m-%d")),
+                      $q.open[$i], $q.high[$i], $q.low[$i], $q.close[$i], $a[$i], $q.volume[$i] ]
+                  | @csv )
+            ' "/tmp/${T}.json" > "tech/${T}.csv"
+            ROWS=$(wc -l < "tech/${T}.csv")
+            if [ "$ROWS" -lt 100 ]; then FAILED="$FAILED ${T}(rows=${ROWS})"; fi
+            sleep 2
+          done
+          if [ -n "$FAILED" ]; then echo "FAILED:$FAILED" >&2; exit 1; fi
+          date -u +%FT%TZ > tech/_updated.txt
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tech
+          git diff --quiet --cached || git commit -m "tech prices $(date -u +%F)"
+          # crypto-prices workflow pushes to main every few hours — rebase onto it first
+          git pull --rebase
+          git push
