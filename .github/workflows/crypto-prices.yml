@@ -1,0 +1,66 @@
+name: crypto-prices
+
+on:
+  schedule:
+    # крипта торгуется без выходных; 00:30 UTC — после закрытия дневного бара Yahoo
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch and convert
+        run: |
+          set -uo pipefail
+          mkdir -p crypto
+          # пул эксперимента + BTC как индикатор режима + контрольная группа
+          POOL="BTC ETH ZEC DASH ZEN DUSK LINK"
+          CTRL="SOL XRP ADA DOGE LTC XMR AVAX DOT ATOM BCH ETC FIL"
+          : > crypto/_missing.txt
+          OK=0
+          for T in $POOL $CTRL; do
+            URL="https://query1.finance.yahoo.com/v8/finance/chart/${T}-USD?range=2y&interval=1d"
+            if ! curl -fsS --retry 3 --retry-delay 5 -H 'User-Agent: Mozilla/5.0' "$URL" -o "/tmp/${T}.json"; then
+              echo "$T fetch-failed" >> crypto/_missing.txt; continue
+            fi
+            if [ "$(jq -r '.chart.error' "/tmp/${T}.json")" != "null" ]; then
+              echo "$T no-data" >> crypto/_missing.txt; continue
+            fi
+            jq -r '
+              .chart.result[0] as $r
+              | ($r.indicators.quote[0]) as $q
+              | ($r.indicators.adjclose[0].adjclose) as $a
+              | "date,open,high,low,close,adjclose,volume",
+                ( range(0; ($r.timestamp | length)) as $i
+                  | [ ($r.timestamp[$i] | gmtime | strftime("%Y-%m-%d")),
+                      $q.open[$i], $q.high[$i], $q.low[$i], $q.close[$i], $a[$i], $q.volume[$i] ]
+                  | @csv )
+            ' "/tmp/${T}.json" > "crypto/${T}.csv"
+            ROWS=$(wc -l < "crypto/${T}.csv")
+            if [ "$ROWS" -lt 100 ]; then
+              echo "$T rows=${ROWS}" >> crypto/_missing.txt; rm -f "crypto/${T}.csv"; continue
+            fi
+            OK=$((OK+1))
+            sleep 2
+          done
+          echo "ok=${OK}" > crypto/_updated.txt
+          date -u +%FT%TZ >> crypto/_updated.txt
+          # падаем только если развалилось ядро пула, а не отдельная монета
+          for T in BTC ETH ZEC DASH; do
+            [ -f "crypto/${T}.csv" ] || { echo "CORE MISSING: $T" >&2; exit 1; }
+          done
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase
+          git add crypto
+          git diff --quiet --cached || git commit -m "crypto prices $(date -u +%F)"
+          git push
