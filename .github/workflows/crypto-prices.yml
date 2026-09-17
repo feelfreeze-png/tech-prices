@@ -2,16 +2,26 @@ name: crypto-prices
 
 on:
   schedule:
-    # крипта торгуется без выходных; 00:30 UTC — после закрытия дневного бара Yahoo
-    - cron: '30 0 * * *'
+    # минуты не круглые — в :00 и :30 очередь GitHub самая длинная (запуск на 00:30 пришёл в 05:03)
+    - cron: '41 0 * * *'    # 00:41 UTC — часовые бары за прошедшие сутки
+    - cron: '41 2 * * *'    # 02:41 UTC — резерв, до утра по Ташкенту (07:41)
+    # вчерашний дневной бар Yahoo заполняет не сразу: в 05:04 UTC он ещё пустой, в 10:21 UTC уже есть
+    - cron: '41 11 * * *'   # 11:41 UTC — закрытый вчерашний дневной бар
+    - cron: '41 17 * * *'   # 17:41 UTC — резерв для закрытого бара
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# два воркфлоу не толкаются в один коммит одновременно
+concurrency:
+  group: prices
+  cancel-in-progress: false
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -19,18 +29,27 @@ jobs:
         run: |
           set -uo pipefail
           mkdir -p crypto
+          # Yahoo иногда отвечает 429/HTML: пробуем два хоста, до 5 кругов с растущей паузой;
+          # таймауты — чтобы зависший запрос не держал общую очередь prices часами
+          yget() {
+            local a h
+            for a in 1 2 3 4 5; do
+              for h in query1 query2; do
+                if curl -fsS --connect-timeout 15 --max-time 120 --retry 2 --retry-delay 5 --retry-all-errors -H 'User-Agent: Mozilla/5.0' "https://${h}.finance.yahoo.com/$1" -o "$2" \
+                   && [ "$(jq -r '.chart.error' "$2" 2>/dev/null)" = "null" ]; then return 0; fi
+                sleep $((a*15))
+              done
+            done
+            return 1
+          }
           # пул эксперимента + BTC как индикатор режима + контрольная группа
           POOL="BTC ETH ZEC DASH ZEN DUSK LINK"
           CTRL="SOL XRP ADA DOGE LTC XMR AVAX DOT ATOM BCH ETC FIL"
           : > crypto/_missing.txt
           OK=0
           for T in $POOL $CTRL; do
-            URL="https://query1.finance.yahoo.com/v8/finance/chart/${T}-USD?range=2y&interval=1d"
-            if ! curl -fsS --retry 3 --retry-delay 5 -H 'User-Agent: Mozilla/5.0' "$URL" -o "/tmp/${T}.json"; then
+            if ! yget "v8/finance/chart/${T}-USD?range=2y&interval=1d" "/tmp/${T}.json"; then
               echo "$T fetch-failed" >> crypto/_missing.txt; continue
-            fi
-            if [ "$(jq -r '.chart.error' "/tmp/${T}.json")" != "null" ]; then
-              echo "$T no-data" >> crypto/_missing.txt; continue
             fi
             jq -r '
               .chart.result[0] as $r
@@ -47,14 +66,26 @@ jobs:
               echo "$T rows=${ROWS}" >> crypto/_missing.txt; rm -f "crypto/${T}.csv"; continue
             fi
             OK=$((OK+1))
-            sleep 2
+            sleep 3
           done
           echo "ok=${OK}" > crypto/_updated.txt
           date -u +%FT%TZ >> crypto/_updated.txt
+          # пустые бары (цены не пришли) — в _missing.txt строкой «BTC empty 2026-09-16»;
+          # вчерашний бар до ~10:00 UTC пустой у всех монет — это норма Yahoo
+          for f in crypto/*.csv; do
+            awk -F, -v t="$(basename "$f" .csv)" 'NR > 1 && $5 == "" { gsub(/"/, "", $1); print t " empty " $1 }' "$f"
+          done >> crypto/_missing.txt
           # падаем только если развалилось ядро пула, а не отдельная монета
           for T in BTC ETH ZEC DASH; do
             [ -f "crypto/${T}.csv" ] || { echo "CORE MISSING: $T" >&2; exit 1; }
           done
+          # свежесть: последний бар BTC не старше вчерашнего дня — иначе красный прогон
+          LAST=$(tail -n1 crypto/BTC.csv | cut -d, -f1 | tr -d '"')
+          MIN=$(date -u -d 'yesterday' +%F)
+          if [[ "$LAST" < "$MIN" ]]; then echo "STALE: last bar $LAST, need >= $MIN" >&2; exit 1; fi
+          # дыра: пустой бар BTC старше вчерашнего — Yahoo не заполнил его больше суток
+          HOLE=$(awk -v y="$MIN" '$1 == "BTC" && $2 == "empty" && $3 < y' crypto/_missing.txt)
+          if [ -n "$HOLE" ]; then echo "HOLE: $HOLE" >&2; exit 1; fi
 
       - name: Commit
         run: |
@@ -62,6 +93,86 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add crypto
           git diff --quiet --cached || git commit -m "crypto prices $(date -u +%F)"
-          # сначала коммит: pull --rebase отказывает, если в рабочей копии есть незакоммиченные изменения
+          git pull --rebase
+          git push
+
+  # Дополнительные данные: полная история (crypto_full/) и часовые бары (crypto_1h/).
+  # Отдельная работа после основной: её сбой не ломает дневные файлы и не красит прогон.
+  extras:
+    needs: fetch
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Full history and hourly bars
+        run: |
+          set -uo pipefail
+          mkdir -p crypto_full crypto_1h
+          yget() {
+            local a h
+            for a in 1 2 3 4 5; do
+              for h in query1 query2; do
+                if curl -fsS --connect-timeout 15 --max-time 120 --retry 2 --retry-delay 5 --retry-all-errors -H 'User-Agent: Mozilla/5.0' "https://${h}.finance.yahoo.com/$1" -o "$2" \
+                   && [ "$(jq -r '.chart.error' "$2" 2>/dev/null)" = "null" ]; then return 0; fi
+                sleep $((a*15))
+              done
+            done
+            return 1
+          }
+          COINS="BTC ETH ZEC DASH ZEN DUSK LINK SOL XRP ADA DOGE LTC XMR AVAX DOT ATOM BCH ETC FIL"
+          NOW=$(date -u +%s)
+          : > crypto_full/_missing.txt; : > crypto_1h/_missing.txt
+          for T in $COINS; do
+            # полная история дневных баров (BTC — с 2014-09-17). Не range=max: так Yahoo отдаёт
+            # месячные или недельные бары вместо дневных; period1=0 даёт дневные
+            if yget "v8/finance/chart/${T}-USD?period1=0&period2=${NOW}&interval=1d" "/tmp/${T}_full.json"; then
+              jq -r '
+                .chart.result[0] as $r
+                | ($r.indicators.quote[0]) as $q
+                | ($r.indicators.adjclose[0].adjclose) as $a
+                | "date,open,high,low,close,adjclose,volume",
+                  ( range(0; ($r.timestamp | length)) as $i
+                    | [ ($r.timestamp[$i] | gmtime | strftime("%Y-%m-%d")),
+                        $q.open[$i], $q.high[$i], $q.low[$i], $q.close[$i], $a[$i], $q.volume[$i] ]
+                    | @csv )
+              ' "/tmp/${T}_full.json" > "crypto_full/${T}.csv"
+            else
+              echo "$T fetch-failed" >> crypto_full/_missing.txt
+            fi
+            sleep 3
+            # часовые бары: Yahoo отдаёт 1h максимум за 730 дней; если отказ — берём 365
+            GOT=""
+            for RNG in 730d 365d; do
+              if yget "v8/finance/chart/${T}-USD?range=${RNG}&interval=1h" "/tmp/${T}_1h.json"; then GOT=$RNG; break; fi
+            done
+            if [ -n "$GOT" ]; then
+              # последний элемент у Yahoo — «живой» тик не ровно в час (open=close, volume=0),
+              # дубль текущего часа — отбрасываем всё, что не кратно 3600 с
+              jq -r '
+                .chart.result[0] as $r
+                | ($r.indicators.quote[0]) as $q
+                | "datetime_utc,open,high,low,close,volume",
+                  ( range(0; ($r.timestamp | length)) as $i
+                    | select($r.timestamp[$i] % 3600 == 0)
+                    | [ ($r.timestamp[$i] | gmtime | strftime("%Y-%m-%dT%H:%MZ")),
+                        $q.open[$i], $q.high[$i], $q.low[$i], $q.close[$i], $q.volume[$i] ]
+                    | @csv )
+              ' "/tmp/${T}_1h.json" > "crypto_1h/${T}.csv"
+            else
+              echo "$T fetch-failed" >> crypto_1h/_missing.txt
+            fi
+            sleep 3
+          done
+          date -u +%FT%TZ > crypto_full/_updated.txt
+          date -u +%FT%TZ > crypto_1h/_updated.txt
+
+      - name: Commit extras
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crypto_full crypto_1h
+          git diff --quiet --cached || git commit -m "crypto full+1h $(date -u +%F)"
           git pull --rebase
           git push

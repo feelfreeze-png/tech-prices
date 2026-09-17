@@ -2,16 +2,22 @@ name: tech-prices
 
 on:
   schedule:
-    # 22:00 UTC = 18:00 EDT / 17:00 EST — всегда после закрытия рынка США
-    - cron: '0 22 * * 1-5'
+    # 22:37 UTC = 18:37 EDT / 17:37 EST — всегда после закрытия рынка США; второй запуск — резерв
+    - cron: '37 22 * * 1-5'
+    - cron: '37 23 * * 1-5'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: prices
+  cancel-in-progress: false
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -19,14 +25,22 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p tech
+          # таймауты — чтобы зависший запрос не держал общую очередь prices часами
+          yget() {
+            local a h
+            for a in 1 2 3 4 5; do
+              for h in query1 query2; do
+                if curl -fsS --connect-timeout 15 --max-time 120 --retry 2 --retry-delay 5 --retry-all-errors -H 'User-Agent: Mozilla/5.0' "https://${h}.finance.yahoo.com/$1" -o "$2" \
+                   && [ "$(jq -r '.chart.error' "$2" 2>/dev/null)" = "null" ]; then return 0; fi
+                sleep $((a*15))
+              done
+            done
+            return 1
+          }
           TICKERS="NVDA MRVL ANET GEV VRT ETN AVGO TSM AMD MPWR ON PWR DELL VST ADI TXN MU SPY"
           FAILED=""
           for T in $TICKERS; do
-            URL="https://query1.finance.yahoo.com/v8/finance/chart/${T}?range=2y&interval=1d"
-            if ! curl -fsS --retry 3 --retry-delay 5 -H 'User-Agent: Mozilla/5.0' "$URL" -o "/tmp/${T}.json"; then
-              FAILED="$FAILED $T"; continue
-            fi
-            if [ "$(jq -r '.chart.error' "/tmp/${T}.json")" != "null" ]; then
+            if ! yget "v8/finance/chart/${T}?range=2y&interval=1d" "/tmp/${T}.json"; then
               FAILED="$FAILED $T"; continue
             fi
             jq -r '
@@ -41,9 +55,13 @@ jobs:
             ' "/tmp/${T}.json" > "tech/${T}.csv"
             ROWS=$(wc -l < "tech/${T}.csv")
             if [ "$ROWS" -lt 100 ]; then FAILED="$FAILED ${T}(rows=${ROWS})"; fi
-            sleep 2
+            sleep 3
           done
           if [ -n "$FAILED" ]; then echo "FAILED:$FAILED" >&2; exit 1; fi
+          # свежесть: последняя сессия SPY не старше 4 дней (запас на праздники) — иначе красный прогон
+          LAST=$(tail -n1 tech/SPY.csv | cut -d, -f1 | tr -d '"')
+          MIN=$(date -u -d '4 days ago' +%F)
+          if [[ "$LAST" < "$MIN" ]]; then echo "STALE: last session $LAST, need >= $MIN" >&2; exit 1; fi
           date -u +%FT%TZ > tech/_updated.txt
 
       - name: Commit
@@ -52,6 +70,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tech
           git diff --quiet --cached || git commit -m "tech prices $(date -u +%F)"
-          # crypto-prices workflow pushes to main every few hours — rebase onto it first
           git pull --rebase
           git push
