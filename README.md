@@ -140,3 +140,31 @@
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding/ETC.csv
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding/FIL.csv
 
+## Крипта: ставки финансирования за всю историю
+
+Ставки финансирования Binance (`<COIN>USDT`) с начала торгов каждого контракта: BTC — с 2019-09-10, большинство монет — с начала 2020, SOL, AVAX, DOT, DOGE, FIL и ZEN — с середины или конца 2020, DUSK — с 2022-01-06. Выгружены один раз 2026-09-21 и не обновляются: свежие ставки идут в `crypto_funding/`.
+
+Формат тот же, что в `crypto_funding/`: `funding_time_utc,rate`. Пропусков больше 8 часов нет ни у одной монеты. Шаг обычно 8 часов, но у SOL и DUSK местами 1–4 часа — такую ставку перед сравнением с 8-часовой нужно пересчитать на 8 часов.
+
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/_updated.txt
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/_missing.txt
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/BTC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/ETH.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/ZEC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/DASH.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/ZEN.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/DUSK.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/LINK.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/SOL.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/XRP.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/ADA.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/DOGE.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/LTC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/XMR.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/AVAX.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/DOT.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/ATOM.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/BCH.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/ETC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/FIL.csv
+
