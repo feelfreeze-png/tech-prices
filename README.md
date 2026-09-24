@@ -235,3 +235,36 @@
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/ZS_F.csv
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/ZW_F.csv
 
+
+## Binance: свечи, ставки, открытый интерес, лонги/шорты
+
+Данные Binance по пулу из 99 монет: всё, что есть на Binance, выгружается автоматически. Список, что есть на споте, что на фьючерсах и чего нет, — в `_meta/binance_pool.md`. Обновляются ежедневно в 04:30 UTC с того же сервера. **Только закрытые данные:** последняя строка дневного файла — вчерашний день UTC, часового — 23:00 UTC вчера; незакрытые сутки и час не пишутся никогда. Повторный запуск в тот же день файлы не меняет.
+
+Имена файлов — символ Binance: `BTCUSDT.csv`. Переименованные монеты записаны под новым тикером: FTM → `SUSDT` (Sonic), MKR → `SKYUSDT`, EOS → `AUSDT` (Vaulta); история у них начинается с переименования. XMR на споте Binance нет — свечи `XMRUSDT` взяты с фьючерсов. У SHIB фьючерс `1000SHIBUSDT`: ставки, OI и long/short лежат под этим именем. Числа — ровно как их отдаёт Binance, без округления.
+
+- `binance_1d/<SYMBOL>.csv` — дневные свечи за всю историю с листинга. Колонки `open_time_utc,open,high,low,close,volume,quote_volume,trades,taker_buy_base,taker_buy_quote`; `quote_volume` — объём в USDT, `taker_buy_quote` — объём агрессивных покупок в USDT. Сутки открываются в 00:00 UTC.
+- `binance_1h/<SYMBOL>.csv` — часовые свечи за скользящие 120 дней, те же колонки, `open_time_utc` вида `2026-09-22T23:00Z` (начало часа).
+- `binance_funding/<SYMBOL>.csv` — ставки финансирования с начала контракта, `funding_time_utc,funding_rate,mark_price`. Шаг у разных контрактов разный (8, 4 или 1 час) и сохранён как есть; ставку за период перед сравнением нужно пересчитать на один шаг. У старых выплат `mark_price` пустой — Binance его не отдаёт.
+- `binance_oi/<SYMBOL>.csv` — открытый интерес, `date_utc,sum_open_interest,sum_open_interest_value` (в монетах и в USDT). Binance хранит только ~30 дней, поэтому история копится с 2026-09-24.
+- `binance_ls/<SYMBOL>.csv` — соотношение аккаунтов в лонгах и шортах, `date_utc,long_short_ratio,long_account,short_account`, тоже копится с 2026-09-24.
+- В `binance_oi/` и `binance_ls/` строка — **снимок на 00:00 UTC даты `date_utc`**, то есть на закрытие предыдущих суток: строка `2026-09-24` описывает конец дня 2026-09-23.
+- Монеты только со спота (сейчас DCR, SC, DGB, GLMR) — без файлов ставок, OI и long/short.
+
+Для утреннего скана — одним запросом:
+
+- `_meta/binance_latest.csv` — срез на последний закрытый день по всем символам: `symbol,date_utc,close,prev_close,change_pct,quote_volume,quote_volume_30d_median,funding_rate_last,open_interest,long_short_ratio`. `change_pct` — изменение close к предыдущему соседнему дню в процентах; если между днями пропуск, поле пустое. `quote_volume_30d_median` — медиана дневного объёма в USDT за последние 30 закрытых дней. `open_interest` — в USDT, снимок на 00:00 UTC сегодня (конец дня `date_utc`). Для монет только со спота последние три поля пустые.
+- `_meta/binance_updated.txt` — время последнего обновления, число символов и последний закрытый день BTC.
+- `_meta/binance_status.json` — по каждому символу: последний закрытый день, число строк, пропуски (`gaps`), есть ли спот и фьючерсы, `status` (`ok`, `gaps`, `absent` — нет на Binance, `error`).
+- `_meta/logs/binance.log` — строка на каждое обновление.
+
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/_meta/binance_updated.txt
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/_meta/binance_latest.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/_meta/binance_status.json
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/_meta/binance_pool.md
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_1d/BTCUSDT.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_1h/BTCUSDT.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_funding/BTCUSDT.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_oi/BTCUSDT.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_ls/BTCUSDT.csv
+
+Для других монет — тот же адрес с другим символом из `binance_latest.csv`.
