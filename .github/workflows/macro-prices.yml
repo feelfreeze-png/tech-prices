@@ -1,0 +1,103 @@
+name: macro-prices
+
+# ~60 рынков помимо крипты и 17 компаний: индексы стран, секторы, облигации,
+# сырьё (фьючерсы и ETF), процентные фьючерсы, валюты, VIX. Полная история, дневные бары.
+on:
+  schedule:
+    - cron: '47 22 * * 1-5'   # после закрытия США
+    - cron: '47 23 * * 1-5'   # резерв
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prices
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # берём только свою папку: в репозитории лежат часовые бары и архив Binance,
+          # качать их каждому прогону незачем
+          sparse-checkout: macro
+
+      - name: Fetch and convert
+        run: |
+          set -uo pipefail
+          mkdir -p macro
+          # таймауты — чтобы зависший запрос не держал общую очередь prices часами
+          yget() {
+            local a h
+            for a in 1 2 3 4 5; do
+              for h in query1 query2; do
+                if curl -fsS --connect-timeout 15 --max-time 120 --retry 2 --retry-delay 5 --retry-all-errors -H 'User-Agent: Mozilla/5.0' "https://${h}.finance.yahoo.com/$1" -o "$2" \
+                   && [ "$(jq -r '.chart.error' "$2" 2>/dev/null)" = "null" ]; then return 0; fi
+                sleep $((a*15))
+              done
+            done
+            return 1
+          }
+          EQ="SPY QQQ IWM DIA EFA EEM EWJ EWG EWU EWZ FXI EWY EWA"
+          SECT="XLE XLF XLK XLV XLI XLU XLP XLY XLB"
+          BOND="TLT IEF SHY LQD HYG TIP"
+          CMDF="CL=F BZ=F NG=F GC=F SI=F HG=F PL=F ZC=F ZW=F ZS=F KC=F SB=F"
+          CMDE="GLD SLV USO UNG DBA DBC"
+          RATE="ZN=F ZB=F ES=F NQ=F"
+          FX="EURUSD=X USDJPY=X GBPUSD=X AUDUSD=X USDCAD=X USDCHF=X DX-Y.NYB ^VIX"
+          NOW=$(date -u +%s)
+          : > macro/_missing.txt
+          OK=0; N=0
+          for T in $EQ $SECT $BOND $CMDF $CMDE $RATE $FX; do
+            N=$((N+1))
+            ENC=$(printf '%s' "$T" | sed 's/=/%3D/g; s/\^/%5E/g')
+            F=$(printf '%s' "$T" | sed 's/=/_/g; s/\^//g')
+            # полная история: не range=max — так Yahoo отдаёт месячные бары вместо дневных
+            # (проверено 2026-09-24: SPY 405 месячных против 8471 дневного)
+            if ! yget "v8/finance/chart/${ENC}?period1=0&period2=${NOW}&interval=1d" "/tmp/${F}.json"; then
+              echo "$T fetch-failed" >> macro/_missing.txt; continue
+            fi
+            # страховка от подмены масштаба: принимаем только дневные бары
+            if [ "$(jq -r '.chart.result[0].meta.dataGranularity // empty' "/tmp/${F}.json")" != "1d" ]; then
+              echo "$T not-daily" >> macro/_missing.txt; continue
+            fi
+            # У валютных пар Yahoo отдаёт на текущий день два бара: «официальный» (привязан
+            # к 23:00 UTC, close = null) и живой тик со своим временем и ценой. Обе строки
+            # получают одну дату, поэтому оставляем последнюю — в ней есть цена закрытия.
+            jq -r '
+              .chart.result[0] as $r
+              | ($r.indicators.quote[0]) as $q
+              | ((($r.indicators.adjclose // [])[0].adjclose) // $q.close) as $a
+              | ($r.meta.gmtoffset // 0) as $off
+              | "date,open,high,low,close,adjclose,volume",
+                ( [ range(0; ($r.timestamp | length)) as $i
+                    | (($r.timestamp[$i] + $off) | gmtime | strftime("%Y-%m-%d")) as $d
+                    | { d: $d,
+                        row: [ $d, $q.open[$i], $q.high[$i], $q.low[$i], $q.close[$i],
+                               ($a[$i] // $q.close[$i]), $q.volume[$i] ] } ]
+                  | group_by(.d) | map(.[-1])[] | .row | @csv )
+            ' "/tmp/${F}.json" > "macro/${F}.csv"
+            ROWS=$(wc -l < "macro/${F}.csv")
+            if [ "$ROWS" -lt 250 ]; then echo "$T rows=${ROWS}" >> macro/_missing.txt; rm -f "macro/${F}.csv"; continue; fi
+            OK=$((OK+1)); sleep 2
+          done
+          printf 'ok=%s of %s\n%s\n' "$OK" "$N" "$(date -u +%FT%TZ)" > macro/_updated.txt
+          MISS=$((N-OK)); echo "ok=$OK missing=$MISS"
+          [ "$MISS" -le 10 ] || { echo "Too many missing: $MISS" >&2; exit 1; }
+          # свежесть: последняя сессия SPY не старше 4 дней (запас на праздники)
+          LAST=$(tail -n1 macro/SPY.csv | cut -d, -f1 | tr -d '"')
+          MIN=$(date -u -d '4 days ago' +%F)
+          if [[ "$LAST" < "$MIN" ]]; then echo "STALE: last session $LAST, need >= $MIN" >&2; exit 1; fi
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add macro
+          git diff --quiet --cached || git commit -m "macro prices $(date -u +%F)"
+          git pull --rebase
+          git push
