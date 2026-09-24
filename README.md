@@ -168,3 +168,70 @@
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/ETC.csv
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/crypto_funding_full/FIL.csv
 
+## Рынки помимо крипты и акций
+
+58 рынков с Yahoo Finance: индексы стран и секторы США, облигации, сырьё (фьючерсы и фонды), процентные фьючерсы, валюты, VIX. Полная история дневных баров: SPY с 1993 года, ^VIX с 1990, индекс доллара с 1971, фьючерсы примерно с 2000, валюты примерно с 2003. Обновляются по будням в 22:47 и 23:47 UTC, после закрытия рынка США; GitHub может запускать с задержкой.
+
+Формат: `macro/<ТИКЕР>.csv`, колонки `date,open,high,low,close,adjclose,volume`. В имени файла `=` заменён на `_`, `^` убран: `CL=F` → `CL_F.csv`, `EURUSD=X` → `EURUSD_X.csv`, `^VIX` → `VIX.csv`. Дата — дата торговой сессии по времени биржи. Если запустить выгрузку среди дня, последняя строка — незакрытая сессия. В старых данных встречаются строки без цен (у индекса доллара их много в 1970–80-х, у VIX — в 1990-х).
+
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/_updated.txt
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/_missing.txt
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/AUDUSD_X.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/BZ_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/CL_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/DBA.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/DBC.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/DIA.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/DX-Y.NYB.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EEM.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EFA.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/ES_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EURUSD_X.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EWA.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EWG.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EWJ.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EWU.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EWY.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/EWZ.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/FXI.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/GBPUSD_X.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/GC_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/GLD.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/HG_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/HYG.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/IEF.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/IWM.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/KC_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/LQD.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/NG_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/NQ_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/PL_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/QQQ.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/SB_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/SHY.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/SI_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/SLV.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/SPY.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/TIP.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/TLT.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/UNG.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/USDCAD_X.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/USDCHF_X.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/USDJPY_X.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/USO.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/VIX.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLB.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLE.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLF.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLI.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLK.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLP.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLU.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLV.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/XLY.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/ZB_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/ZC_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/ZN_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/ZS_F.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/macro/ZW_F.csv
+
