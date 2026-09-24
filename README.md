@@ -268,3 +268,21 @@
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_ls/BTCUSDT.csv
 
 Для других монет — тот же адрес с другим символом из `binance_latest.csv`.
+
+## Binance: архив всех бессрочных контрактов, включая закрытые
+
+Разовая выгрузка из публичного архива `data.binance.vision`: **860 контрактов** USDT-перпетуалов, которые когда-либо торговались, из них 31 закрыт (LUNAUSDT заканчивается 2022-05). Нужна, чтобы проверять правила без ошибки выжившего: монеты, умершие при отрицательных ставках, здесь есть. Выгружено 2026-09-24, не обновляется.
+
+Месячный архив Binance начинается с 2020-01, поэтому сентября–декабря 2019 в нём нет (ставки за те месяцы есть в `crypto_funding_full/`). У 130 контрактов месяцев ставок меньше, чем месяцев свечей — это пропуски самого архива.
+
+Файлы по образцу: `https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/klines_1d/<SYMBOL>.csv` и `https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/funding/<SYMBOL>.csv`, где `<SYMBOL>` — из первой колонки `_symbols.csv`. Колонки свечей: `open_time_ms,open,high,low,close,volume,quote_volume` (время UTC в миллисекундах). Колонки ставок: `funding_time_ms,interval_hours,rate` — ставка за свой интервал, шаг 1, 4 или 8 часов, для суточной суммы складываются.
+
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/_symbols.csv — список контрактов: первый и последний месяц, число месяцев, статус active или closed
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/_missing.txt — контракты, у которых чего-то не хватает (сейчас пусто)
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/_updated.txt — время выгрузки
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/README.md — описание папки
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/klines_1d/BTCUSDT.csv — пример: свечи с 2020-01
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/funding/BTCUSDT.csv — пример: ставки с 2020-01
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/klines_1d/LUNAUSDT.csv — пример закрытого контракта
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/funding/LUNAUSDT.csv — пример закрытого контракта
+

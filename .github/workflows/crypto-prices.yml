@@ -23,6 +23,9 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # берём только свою папку: в репозитории лежат архивы на сотни мегабайт
+          sparse-checkout: crypto
 
       - name: Fetch and convert
         run: |
@@ -104,6 +107,10 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            crypto_full
+            crypto_1h
 
       - name: Full history and hourly bars
         run: |
