@@ -1,7 +1,7 @@
 name: macro-prices
 
-# ~60 рынков помимо крипты и 17 компаний: индексы стран, секторы, облигации,
-# сырьё (фьючерсы и ETF), процентные фьючерсы, валюты, VIX. Полная история, дневные бары.
+# ~90 рынков помимо крипты и акций: индексы стран, секторы, облигации, сырьё (фьючерсы, фонды,
+# добытчики), процентные фьючерсы, валюты, VIX. Полная история, дневные бары.
 on:
   schedule:
     - cron: '47 22 * * 1-5'   # после закрытия США
@@ -47,12 +47,18 @@ jobs:
           BOND="TLT IEF SHY LQD HYG TIP"
           CMDF="CL=F BZ=F NG=F GC=F SI=F HG=F PL=F ZC=F ZW=F ZS=F KC=F SB=F"
           CMDE="GLD SLV USO UNG DBA DBC"
+          # ещё сырьё: палладий, мазут, бензин, какао, хлопок, скот, апельсиновый сок, овёс, рис, алюминий
+          CMDF2="PA=F HO=F RB=F CC=F CT=F LE=F HE=F GF=F OJ=F ZO=F ZR=F ALI=F"
+          # фонды и добытчики: палладий, платина, золото и серебро (добытчики), медь, уран, литий,
+          # редкие земли, сталь, углеродные квоты, широкие сырьевые корзины, зерно; кремний —
+          # Ferroglobe (GSM) и Daqo (DQ): биржевого кремния вне Китая нет
+          CMDE2="PALL PPLT GDX GDXJ SIL COPX URA CCJ LIT REMX SLX KRBN PDBC GSG CORN WEAT SOYB GSM DQ"
           RATE="ZN=F ZB=F ES=F NQ=F"
           FX="EURUSD=X USDJPY=X GBPUSD=X AUDUSD=X USDCAD=X USDCHF=X DX-Y.NYB ^VIX"
           NOW=$(date -u +%s)
           : > macro/_missing.txt
           OK=0; N=0
-          for T in $EQ $SECT $BOND $CMDF $CMDE $RATE $FX; do
+          for T in $EQ $SECT $BOND $CMDF $CMDE $CMDF2 $CMDE2 $RATE $FX; do
             N=$((N+1))
             ENC=$(printf '%s' "$T" | sed 's/=/%3D/g; s/\^/%5E/g')
             F=$(printf '%s' "$T" | sed 's/=/_/g; s/\^//g')
@@ -87,7 +93,7 @@ jobs:
           done
           printf 'ok=%s of %s\n%s\n' "$OK" "$N" "$(date -u +%FT%TZ)" > macro/_updated.txt
           MISS=$((N-OK)); echo "ok=$OK missing=$MISS"
-          [ "$MISS" -le 10 ] || { echo "Too many missing: $MISS" >&2; exit 1; }
+          [ "$MISS" -le 15 ] || { echo "Too many missing: $MISS" >&2; exit 1; }
           # свежесть: последняя сессия SPY не старше 4 дней (запас на праздники)
           LAST=$(tail -n1 macro/SPY.csv | cut -d, -f1 | tr -d '"')
           MIN=$(date -u -d '4 days ago' +%F)
