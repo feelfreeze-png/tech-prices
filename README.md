@@ -170,7 +170,7 @@
 
 ## Рынки помимо крипты и акций
 
-58 рынков с Yahoo Finance: индексы стран и секторы США, облигации, сырьё (фьючерсы и фонды), процентные фьючерсы, валюты, VIX. Полная история дневных баров: SPY с 1993 года, ^VIX с 1990, индекс доллара с 1971, фьючерсы примерно с 2000, валюты примерно с 2003. Обновляются по будням в 22:47 и 23:47 UTC, после закрытия рынка США; GitHub может запускать с задержкой.
+89 рынков с Yahoo Finance: индексы стран и секторы США, облигации, сырьё (фьючерсы, фонды и добытчики — металлы, энергия, зерно, скот, уран, литий, редкие земли, сталь, углеродные квоты), процентные фьючерсы, валюты, VIX. Кремния на бирже вне Китая нет, поэтому вместо него — производители Ferroglobe (GSM) и Daqo (DQ). Полная история дневных баров: SPY с 1993 года, ^VIX с 1990, индекс доллара с 1971, фьючерсы примерно с 2000, валюты примерно с 2003. Обновляются по будням в 22:47 и 23:47 UTC, после закрытия рынка США; GitHub может запускать с задержкой.
 
 Формат: `macro/<ТИКЕР>.csv`, колонки `date,open,high,low,close,adjclose,volume`. В имени файла `=` заменён на `_`, `^` убран: `CL=F` → `CL_F.csv`, `EURUSD=X` → `EURUSD_X.csv`, `^VIX` → `VIX.csv`. Дата — дата торговой сессии по времени биржи. Если запустить выгрузку среди дня, последняя строка — незакрытая сессия. В старых данных встречаются строки без цен (у индекса доллара их много в 1970–80-х, у VIX — в 1990-х).
 
@@ -285,4 +285,16 @@
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/funding/BTCUSDT.csv — пример: ставки с 2020-01
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/klines_1d/LUNAUSDT.csv — пример закрытого контракта
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/binance_um/funding/LUNAUSDT.csv — пример закрытого контракта
+
+## Акции: S&P 500 и техноветка
+
+505 тикеров: весь текущий состав S&P 500, 17 компаний техноветки (MRVL и TSM в индекс не входят) и SPY. Дневные бары за 10 лет, цены округлены до 4 знаков. Обновляются по будням в 22:57 и 23:57 UTC, плюс перезапуск в 10:57 UTC — на случай, когда Yahoo отдаёт закрытие дня пустым.
+
+Формат: `stocks/<ТИКЕР>.csv`, колонки `date,open,high,low,close,adjclose,volume`. Точка в тикере заменена на дефис, как у Yahoo: `BRK.B` → `BRK-B.csv`. Файлов много, поэтому ссылки не перечислены: адрес собирается по образцу `https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/stocks/<ТИКЕР>.csv`, а полный список тикеров — в `_tickers.txt`.
+
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/stocks/_tickers.txt — список всех 505 тикеров, по одному на строку
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/stocks/_updated.txt — сколько скачалось и когда
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/stocks/_missing.txt — тикеры, которые не скачались
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/stocks/SPY.csv — пример: эталонный индексный фонд
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/stocks/AAPL.csv — пример: компания из индекса
 
