@@ -1,0 +1,90 @@
+name: stocks-prices
+
+# Акции S&P 500 + 17 компаний техноветки + SPY: дневные бары за 10 лет, список — stocks/_tickers.txt
+on:
+  schedule:
+    - cron: '57 22 * * 1-5'   # после закрытия США
+    - cron: '57 23 * * 1-5'   # резерв
+    - cron: '57 10 * * 2-6'   # утренний перезапуск: Yahoo иногда отдаёт закрытие дня пустым
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prices
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # берём только свою папку: в репозитории лежат архивы на сотни мегабайт
+          sparse-checkout: stocks
+
+      - name: Fetch and convert
+        run: |
+          set -uo pipefail
+          mkdir -p stocks
+          # таймауты — чтобы зависший запрос не держал общую очередь prices часами
+          yget() {
+            local a h
+            for a in 1 2 3 4 5; do
+              for h in query1 query2; do
+                if curl -fsS --connect-timeout 15 --max-time 120 --retry 2 --retry-delay 5 --retry-all-errors -H 'User-Agent: Mozilla/5.0' "https://${h}.finance.yahoo.com/$1" -o "$2" \
+                   && [ "$(jq -r '.chart.error' "$2" 2>/dev/null)" = "null" ]; then return 0; fi
+                sleep $((a*15))
+              done
+            done
+            return 1
+          }
+          : > stocks/_missing.txt
+          OK=0; N=0
+          while read -r T; do
+            [ -n "$T" ] || continue
+            N=$((N+1))
+            if ! yget "v8/finance/chart/${T}?range=10y&interval=1d" "/tmp/${T}.json"; then
+              echo "$T fetch-failed" >> stocks/_missing.txt; continue
+            fi
+            # страховка от подмены масштаба: принимаем только дневные бары
+            if [ "$(jq -r '.chart.result[0].meta.dataGranularity // empty' "/tmp/${T}.json")" != "1d" ]; then
+              echo "$T not-daily" >> stocks/_missing.txt; continue
+            fi
+            jq -r '
+              def r4: if . == null then null else (. * 10000 | round) / 10000 end;
+              .chart.result[0] as $r
+              | ($r.indicators.quote[0]) as $q
+              | ((($r.indicators.adjclose // [])[0].adjclose) // $q.close) as $a
+              | ($r.meta.gmtoffset // 0) as $off
+              | "date,open,high,low,close,adjclose,volume",
+                ( [ range(0; ($r.timestamp | length)) as $i
+                    | (($r.timestamp[$i] + $off) | gmtime | strftime("%Y-%m-%d")) as $d
+                    | { d: $d,
+                        row: [ $d, ($q.open[$i] | r4), ($q.high[$i] | r4), ($q.low[$i] | r4), ($q.close[$i] | r4),
+                               (($a[$i] // $q.close[$i]) | r4), $q.volume[$i] ] } ]
+                  | group_by(.d) | map(.[-1])[] | .row | @csv )
+            ' "/tmp/${T}.json" > "stocks/${T}.csv"
+            ROWS=$(wc -l < "stocks/${T}.csv")
+            if [ "$ROWS" -lt 20 ]; then echo "$T rows=${ROWS}" >> stocks/_missing.txt; rm -f "stocks/${T}.csv"; continue; fi
+            OK=$((OK+1)); sleep 1
+          done < stocks/_tickers.txt
+          printf 'ok=%s of %s\n%s\n' "$OK" "$N" "$(date -u +%FT%TZ)" > stocks/_updated.txt
+          MISS=$((N-OK)); echo "ok=$OK missing=$MISS"
+          [ "$MISS" -le 25 ] || { echo "Too many missing: $MISS" >&2; exit 1; }
+          # свежесть: SPY — эталон, без него прогон бессмысленен
+          [ -f stocks/SPY.csv ] || { echo "SPY не скачался" >&2; exit 1; }
+          LAST=$(tail -n1 stocks/SPY.csv | cut -d, -f1 | tr -d '"')
+          MIN=$(date -u -d '4 days ago' +%F)
+          if [[ "$LAST" < "$MIN" ]]; then echo "STALE: last session $LAST, need >= $MIN" >&2; exit 1; fi
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stocks
+          git diff --quiet --cached || git commit -m "stocks prices $(date -u +%F)"
+          git pull --rebase
+          git push
