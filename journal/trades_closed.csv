@@ -1,1 +1,4 @@
 rule,symbol,side,size_usd,entry_date,entry_price,exit_date,exit_price,funding_usd,cost_usd,pnl_usd,pnl_pct,reason
+A,AVAXUSDT,long,65.0,2026-09-20,11.288,2026-09-27,10.905,0.0,0.13,-2.3354,-3.59,недельная смена набора
+A,ZECUSDT,long,65.0,2026-09-20,1516.49,2026-09-27,1587.4,0.0,0.13,2.9094,4.48,недельная смена набора
+A,ZENUSDT,long,65.0,2026-09-20,7.752,2026-09-27,7.86,0.0,0.13,0.7756,1.19,недельная смена набора
