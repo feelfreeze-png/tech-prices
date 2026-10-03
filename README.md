@@ -298,3 +298,21 @@
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/stocks/SPY.csv — пример: эталонный индексный фонд
 - https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/stocks/AAPL.csv — пример: компания из индекса
 
+## Все американские акции: снимок доходностей и история
+
+5 840 акций и депозитарных расписок с NASDAQ, NYSE и AMEX — всё, что осталось после отсева варрантов, юнитов, прав, привилегированных акций и облигаций. Список берётся из открытого ежедневного набора `rreichel3/US-Stock-Symbols`, цены — Yahoo Finance. Нужны для поиска сильных движений: самые большие росты обычно у средних и малых компаний, которых нет в S&P 500. Обновляются по будням в 23:17 UTC после закрытия США и в 05:17 UTC до открытия.
+
+- `_snapshot.csv` — главный файл: по каждой акции последняя закрытая сессия, цена, рост за 7, 14, 30, 182 и 365 дней, средний дневной оборот в долларах за 20 сессий, капитализация, сектор, отрасль, биржа, название. Рост считается по цене с поправкой на дивиденды и сплиты; пустое значение означает, что истории не хватило.
+- `_universe.csv` — справочник: символ, название, биржа, сектор, отрасль, капитализация, страна, год IPO.
+- `hist/<ТИКЕР>.csv` — дневная история за 2 года, колонки как в `stocks/`. Пишется только для акций с оборотом от $10 млн в день — сейчас таких 2 636 из 5 840.
+- Незакрытая сессия в файлы не попадает: если прогон пришёлся на часы торгов, строка за текущий день отбрасывается.
+- Классы акций: в списке они идут как `BRK/B`, в файлах и в адресах — как у Yahoo, `BRK-B`.
+
+Файлов истории много, поэтому ссылки не перечислены: адрес собирается по образцу `https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/us_all/hist/<ТИКЕР>.csv`, список тикеров с историей виден по оборотy в `_snapshot.csv`.
+
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/us_all/_snapshot.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/us_all/_universe.csv
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/us_all/_missing.txt — акции, по которым цен не нашлось
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/us_all/_updated.txt — сводка прогона: сколько скачалось, сколько с историей, последняя сессия
+- https://raw.githubusercontent.com/feelfreeze-png/tech-prices/main/us_all/hist/AAPL.csv — пример файла истории
+
