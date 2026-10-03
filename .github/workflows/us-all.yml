@@ -1,0 +1,45 @@
+name: us-all
+
+# Все американские акции (NASDAQ, NYSE, AMEX, около 5 800 после отсева): снимок доходностей по всем
+# и дневная история за 2 года по ликвидным. Скрипт — src/us_all.py.
+on:
+  schedule:
+    - cron: '17 23 * * 1-5'   # после закрытия США
+    - cron: '17 5 * * 2-6'    # утренний перезапуск, до открытия
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: us_all
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # берём только свои папки: в репозитории лежат архивы на сотни мегабайт
+          sparse-checkout: |
+            src
+            us_all
+
+      - name: Fetch all US stocks
+        run: python3 src/us_all.py
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add us_all
+          git diff --quiet --cached || git commit -m "us_all $(date -u +%F)"
+          # эта группа идёт отдельно от prices, поэтому push может столкнуться с чужим
+          # коммитом; теряем полчаса выгрузки из-за гонки — пробуем три раза
+          for i in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep 15
+          done
+          echo "push не прошёл после трёх попыток" >&2; exit 1
